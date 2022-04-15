@@ -1,3 +1,11 @@
+?> 表在hdfs中的存储方式
+
+分区表改变了Hive对数据存储的组织方式。   
+如果我们是在mydb.db数据库中创建的employees这个表，那么对于这个表会有employees目录与之对应,如果是双分区表，则会出现对应分区country和state目录： 
+"hdfs://master_server/user/hive/warehouse/mydb.db/employees"  
+.../employees/country=CA/state=AB           
+.../employees/country=CA/state=BC
+
 ?> 创建表
 
 ```sql
@@ -31,7 +39,7 @@ TRUNCATE table ai.dwd_block_object_assess_test_da
 ```sql
 alter table  ai.dwd_block_object_assess_test_da drop partition (event_day='20210710')
 ```
-### 删除表分区(分区存在NUll值)
+### 删除表分区(分区存在NUll值)
 ```sql
 ALTER TABLE table_name DROP IF EXISTS PARTITION (event_day='__HIVE_DEFAULT_PARTITION__',pk_month='__HIVE_DEFAULT_PARTITION__')
 ```
@@ -46,3 +54,196 @@ CHANGE COLUMN old_name new_name bigint COMMENT '区块编号'  -- 旧字段名 �
 alter table table_name add columns(new_column string comment '新增字段') cascade 
  -- 不加cascade更改表 再写入分区数据时，新增列数据为null
 ```
+
+?>查询表
+
+###  查询ai数据库中包含的表
+```sql
+show tables in ai    
+```
+
+###  查询表中存在的所有分区
+```sql
+show partitions ai.ads_ai_jw_block_scene_full_2   
+```
+
+?>语法
+
+### 官网
+[link](https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF)
+
+### 基本运算符
+
+```sql
+select 10 / 3     
+-- +数字相加；-数字相减; *为数字相乘; /为浮点数除法; div为整除; %为取余数
+
+select 5 | 7  
+-- |为二进制按位或运算; &为二进制按位与运算; ^为二进制按位异或(不同为1)
+
+select 'd'||2, 2||1.5 --return 'd2','21.5'
+-- ||接受数字和字符类型，返回字符类型拼接
+
+```
+### 比较运算符
+```sql
+select 1 = 2, 1 == 2     
+-- 均返回False，同义运算符     
+
+select 1 <=> 2    
+-- 非NULL值数据时等价于 = 和 ==  ,若有均为NULL 返回 True, 一方为NULL返回False
+
+select 1 <> 2    
+-- 这个是hive sql里的不等于号   等价于 != ,符号间不能有空格, 若有一方为NULL、或者均为NULL, 则返回NULL
+
+select 1 <2 ,1<=2 ,1> 2,1 >= 2   
+-- 大于、小于、大小等于符号， 符号间不能有空格,  若有一方为NULL或均为NULL, 则返回NULL  
+```
+### 常用函数
+```sql
+select * from ai.dws_ai_jw_block_flag_da where city_id is null 
+-- xx字段 is null、xx字段 is not null（xx字段为空、不为空）
+
+select cast(5.231313 as DECIMAL(10,4))   
+-- 保留指定精度, DECIMAL(arg1,arg2)，arg1表示返回数字长度最长为多少（必须大于整数部分+保留小数点位数的长度），arg2表示小数点后保留位数
+
+select ltrim(string A) ,rtrim(string A)  
+-- 删除字符串中左右空格 
+
+select trim(' 13 df  ')     
+-- 删除前后所有空格，不删除中间
+
+select LPAD('lxh',4,'0'), lpad('lxh',2,'0'), RPAD('df',5,0)     
+-- 返回 '0lxh' ,'lx' ,'df000'  填充，若返回的长度小于原先字符串的长度，则不填充并截取所返回长度的原字符串
+
+select length('fef'),locate('e','sfesfe')  
+-- 返回 长度为3 ,  第一个出现该字符的位置3 
+
+select reverse('poqw')     
+-- 返回 'wqop' 反转
+
+select REPEAT(1,2)+1    
+-- 重复1两次，实际是字符串'11' 又加了个数字1, 涉及自动类型转换 输出为12.0浮点数
+
+select round(1.52442001324242,5)   
+-- 返回1.52442   保留小数点后5位小数，不指定则默认不保留小数点
+
+select floor(1.96464)
+-- 返回1   向下取整
+
+select ceil(1.46464)
+-- 返回2   向上取整
+
+select * from ai.dws_ai_jw_block_flag_da m where event_day = '20210607'  order by  rand(12)   
+-- 全局随机 rand(可以指定随机种子)
+
+select exp(flag) from ai.dws_ai_jw_block_flag_da    
+-- 对某列数值数据取e^col
+
+select ln(flag) from ai.dws_ai_jw_block_flag_da    
+-- 对某列数值数据取ln(col) log10() log2() log(3,5) 同理
+
+select pow(2,3),sqrt(4)   
+-- 返回2^3 平方函数; 返回2 开根号函数
+
+select bin(5),hex(16)   
+-- 返回101 输入10进制返回二进制; 返回10 输出10进制返回十六进制
+
+select factorial(2)  
+-- 返回2的阶乘
+
+select 'fosfsfsfsf' like 'f%' 
+-- 返回true 通配符 或者 select 'fosf' like 'f_ _ _ _'  返回true  '_'匹配一个字符 
+
+select 'tcghhgsf2s3f3' rlike 'sf'  
+-- 返回true 只要字符串包含匹配的字符，无论任何位置都返回true
+
+```
+
+### 时间函数
+#### presto
+```sql
+select parse_datetime('20220318', 'yyyyMMdd')
+-- return 2022-03-18 00:00:00.0  #presto 字符串 2 日期date格式
+select to_unixtime(parse_datetime('20220318', 'yyyyMMdd'))  
+-- return 1647532800   #presto 日期date格式 2 秒级时间戳
+select from_unixtime(1647532800) return 2022-03-18 00:00:00.0   
+-- presto  秒级时间戳 2 日期date格式
+select REPLACE(SUBSTRING(cast('2022-01-16 05:01:08.0' as VARCHAR),1,10),'-','')
+-- return 20220116  #presto 日期date格式 2 转字符串
+select format_datetime(from_unixtime(1609167953000/1000),'yyyy-MM-dd')  
+-- return 2020-12-18 #presto 正规的日期date格式 2 字符串
+select format_datetime(from_unixtime(1609167953694/1000)+ interval '8' hour + interval '30' MINUTE,'yyyy-MM-dd hh:mm:ss') 
+-- return 2020-12-29 07:35:53  format_datetime 还可以加时间偏移
+```
+#### hive
+```sql
+select from_unixtime(1609167953694/1000)   
+-- 秒级时间戳 2 日期date格式(date格式本质就是字符串)
+-- from_unixtime需要注意在hive中他的参数不能是运算表达式，如这条会报错;在presto中不报错
+select UNIX_TIMESTAMP('20211106','yyyymmdd') 
+-- return 1609863060  #hive 日期字符串 2 秒级时间戳
+select FROM_UNIXTIME(UNIX_TIMESTAMP('20211106','yyyymmdd'),'yyyy-mm-dd')  
+-- return 2021-11-06 #hive 秒级时间戳 2 日期date
+```
+
+?>工具sql
+
+### 计算两个经纬度之间距离 hive & presto
+```sql
+with tmp as (
+  select
+    109.67249220637174 b_lon,
+    27.449656246000266 b_lat,
+    109.69888390656 s_lon,
+    27.4442168870677 s_lat
+)
+select
+  1000 * 6371.393 * acos(
+    cos(radians(cast(s_lat as double))) * cos(radians(cast(b_lat as double))) * cos(
+      radians(cast(b_lon as double)) - radians(cast(s_lon as double))
+    ) + sin(radians(cast(b_lat as double))) * sin(radians(cast(s_lat as double)))
+  )
+from
+  tmp
+```
+
+### 计算当前日期对应星期几 hive & presto
+```sql
+with tmp as (
+  select
+    '20220412' event_day
+)
+select
+  case
+    -- presto
+      mod(
+        date_diff(
+          'day',
+          cast('2021-02-01' as date),
+          parse_datetime(event_day, 'yyyyMMdd')
+        ),
+        7
+      )
+    -- hive
+    (
+      - datediff(
+        '2021-02-01',
+        FROM_UNIXTIME(
+          UNIX_TIMESTAMP(event_day, 'yyyymmdd'),
+          'yyyy-mm-dd'
+        )
+      )
+    ) % 7
+    when 0 then 1
+    when 1 then 2
+    when 2 then 3
+    when 3 then 4
+    when 4 then 5
+    when 5 then 6
+    when 6 then 7
+  end AS day_of_week
+from
+  tmp
+```
+
