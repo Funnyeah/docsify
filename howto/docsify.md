@@ -83,3 +83,10 @@ $$
 你也可以盗图：
 
 ![](https://lccurious.github.io/2020/01/30/optimal-transport/image-20210212142637523.png ':size=700')
+
+# 7.强调
+> 这是一般性的强调
+
+还有这种：
+
+?> Wasserstein 距离以及 Sinkhorn 求解算法

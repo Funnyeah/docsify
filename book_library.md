@@ -23,6 +23,10 @@
 
 ### 因果推断
 - the book of why（为什么：因果关系的新科学）
+- https://github.com/microsoft/dowhy
+- https://github.com/uber/causalml
+- https://github.com/microsoft/EconML
+- https://github.com/grf-labs/grf
 
 ### 强化学习
 Deep Reinforcement Learning: [链接](https://deepreinforcementlearningbook.org/)

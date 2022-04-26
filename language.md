@@ -1,6 +1,0 @@
-
-- Python
-- R
-- SQL
-
-
