@@ -362,6 +362,23 @@ x
 {"col1":3,"col2":4}
 {"col1":1,"col2":2}
 
+4.inline
+select inline(array(struct('A',10,date '2015-01-01'),struct('B',20,date '2016-02-02')));
+select inline(array(struct('A',10,date '2015-01-01'),struct('B',20,date '2016-02-02'))) as (col1,col2,col3);
+select tf.* from (select 0) t lateral view inline(array(struct('A',10,date '2015-01-01'),struct('B',20,date '2016-02-02'))) tf;
+select tf.* from (select 0) t lateral view inline(array(struct('A',10,date '2015-01-01'),struct('B',20,date '2016-02-02'))) tf as col1,col2,col3;
+
+ Return       input_format                                                      含义
+T1,…,Tn  inline(ARRAY<STRUCT<f1:T1,...,fn:Tn>> a)      Explodes an array of structs to multiple rows. Returns a row-set with N columns (N = number of top level elements in the struct), one row per struct from the array. (As of Hive 0.10.)
+
+5.stack
+select stack(2,'A',10,date '2015-01-01','B',20,date '2016-01-01');
+select stack(2,'A',10,date '2015-01-01','B',20,date '2016-01-01') as (col0,col1,col2);
+select tf.* from (select 0) t lateral view stack(2,'A',10,date '2015-01-01','B',20,date '2016-01-01') tf;
+select tf.* from (select 0) t lateral view stack(2,'A',10,date '2015-01-01','B',20,date '2016-01-01') tf as col0,col1,col2;
+
+T1,...,Tn/r    stack(int r,T1 V1,...,Tn/r Vn)    Breaks up n values V1,...,Vn into r rows. Each row will have n/r columns. r must be constant.
+
 ```
 
 ### 排序与窗口函数
@@ -522,7 +539,7 @@ select cid, res_new from (
 --  hive中的']'等特殊字符转义需要三个反斜杠（根据情况可能需要多个，在pyspark中sql就需要4个了）
 ```
 
-### 生成序列数
+### 生成序列数 hive & presto
 ```sql
 -- hive
 select tmp.*,t.* from 
@@ -534,7 +551,13 @@ id, s from (  select 2 as id )
 cross join 
 UNNEST(SEQUENCE(0,10, 2)) as t ( s )
 ```
-
+### json格式解析
+```sql
+-- hive
+get_json_object(json_col,'$.xxx') 
+-- presto mysql
+json_extract(json_col, '$[*].xxx')
+```
 
 ?>临时写公式
 
