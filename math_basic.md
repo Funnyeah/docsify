@@ -122,4 +122,71 @@ $$\begin{aligned} \hat{\theta}_{M A P} &=\arg \max _{\theta} P(\theta \mid D) \\
 - 带正则项的最小二乘估计等价于贝叶斯角度的先验和噪声都为高斯分布的最大后验概率估计
 
 ?>贝叶斯平滑
-https://blog.csdn.net/jinping_shi/article/details/78334362
+
+[基本概念](https://blog.csdn.net/jinping_shi/article/details/78334362)
+
+[简要步骤](https://blog.csdn.net/Elaine_DWL/article/details/97525596?spm=1001.2101.3001.6650.9&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-9.pc_relevant_default&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-9.pc_relevant_default&utm_relevant_index=15)
+
+?>威尔逊区间平滑（Wilson CTR）
+
+CTR（Click-Through-Rate）即点击通过率，指广告的点击到达率。CTR是广告推荐系统中一项重要的衡量算法好坏的指标。
+
+计算公式： CTR = 点击数 / 曝光数
+
+由于原始CTR计算方式只考虑了相对值，没有考虑绝对值。即，没有考虑曝光的数值大小，在曝光少的情况下，计算出的CTR其实不可靠，样本充足的情况下，才能反应真实情况。
+
+举个例子，有三个广告：
+
+A：点击数 5 曝光数 10
+
+B：点击数 50 曝光数 100
+
+C：点击数 500 曝光数 1000
+
+此三个广告的CTR 都是 0.5 ，但是按照实际表现，从置信的角度分析，应该是C > B > A，因为C的样本数更多，可信度更高。
+
+为了衡量样本数对于 CTR 置信区间的影响，科学家们引入"威尔逊（Wilson）区间"的概念。公式如下：
+
+$\frac{\hat{p}+\frac{z^{2}}{2 n}}{1+\frac{z^{2}}{n}} \pm \frac{z}{1+\frac{z^{2}}{n}} \sqrt{\frac{\hat{p}(1-\hat{p})}{n}+\frac{z^{2}}{4 n^{2}}}$
+
+根据实际情况取区间上下界
+
+p —— 概率，即点击的概率，也就是 CTR；
+
+n —— 样本总数，即曝光数；
+
+z —— 在正态分布里， $\mu+z \times \sigma$ 会有一定的置信度。例如 z=1.96 ，就有 95% 的置信度,可查表看对应置信度。
+Wilson区间的含义就是，就是指在一定置信度下，真实的 CTR 范围是多少。Wilson CTR修正的源码如下：
+```python
+import numpy as np
+
+def walson_ctr(num_click, num_pv, z=1.96):
+    p = num_click * 1.0 / num_pv
+    n = num_pv
+    
+    A = p + z**2 / (2*n)
+    B = np.sqrt(p * (1-p) / n + z**2 / (4*(n**2)))
+    C = z * B
+    D = 1 + z**2 / n
+
+    ctr = (A - C) / D #取了区间下界
+    return ctr
+```
+
+在电单车场景中，定义[车站效率=订单数量/车辆等待时长]反应车站好坏，此时有三个车站场景:
+
+A：订单数 1 等待时长 0.1h
+
+B：订单数 10 等待时长 1h
+
+C：订单数 100 等待时长 10h
+
+此时三个车站ABC效率都是10,但是按照实际表现，从置信的角度分析，应该是C > B > A，因为C的样本数更多，可信度更高。
+
+因此，可将上述方法推广至此场景，由于wilson平滑的是概率，所以将车站效率拆分成
+
+车站效率=(订单数量/等待车辆数)*(等待车辆数/车辆等待时长),我们对前一项括号中内容进行修正
+
+?>朴素贝叶斯
+
+https://zhuanlan.zhihu.com/p/164619896
