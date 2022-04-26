@@ -364,12 +364,15 @@ x
 
 ```
 
-### 排序函数
+### 排序与窗口函数
 ```sql
 1.row_number() 默认由小到大排序，返回顺序号
 2.rank() 默认由小到大排序，同值共号，返回断层的顺序号（某列[5,7,7,10],返回1,2,2,4）
 3.dense_rank() 默认由小到大排序，同值共号，返回不断层的顺序号（某列[5,7,7,10],返回1,2,2,3）
 4.ntile() 默认由小到大排序，返回分层顺序号
+5.FIRST_VALUE(col_a), LAST_VALUE(col_a) 返回截止到当前行的按某字段分组的col_a字段的最小与最大值
+6.lead(col_a,1) 返回窗口内向下1行数据的该字段值
+6.lag(col_a,1) 返回窗口内向上1行数据的该字段值
 ```
 
 ### hive与presto的语法区别
@@ -507,7 +510,7 @@ select
 from
   tmp
 ```
-### 一行转多列 hive
+### 一行转多行 hive
 ```sql
 with tmp as (
    select '[["100605096","113.54398085147338","26.75429268784589","25","42"],["100605521","113.54396563814427","26.75428509464191","52","88"]]' res
@@ -519,6 +522,18 @@ select cid, res_new from (
 --  hive中的']'等特殊字符转义需要三个反斜杠（根据情况可能需要多个，在pyspark中sql就需要4个了）
 ```
 
+### 生成序列数
+```sql
+-- hive
+select tmp.*,t.* from 
+(select 1 a)t LATERAL view   posexplode(split(space(8),' ')) tmp as idx,value
+
+-- presto
+select  
+id, s from (  select 2 as id )
+cross join 
+UNNEST(SEQUENCE(0,10, 2)) as t ( s )
+```
 
 
 ?>临时写公式
